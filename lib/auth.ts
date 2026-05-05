@@ -40,7 +40,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.username = user.name ?? ''
+        token.username = (user as { name?: string | null }).name ?? ''
         token.isAdmin = (user as { isAdmin?: boolean }).isAdmin ?? false
       }
       return token

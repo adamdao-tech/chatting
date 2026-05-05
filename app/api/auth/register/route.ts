@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Přezdívka musí mít 2-32 znaků' }, { status: 400 })
     }
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return NextResponse.json({ error: 'Přezdívka smí obsahovat jen písmena, čísla a podtržítko' }, { status: 400 })
+      return NextResponse.json({ error: 'Přezdívka smí obsahovat jen anglická písmena (a-z), čísla a podtržítko' }, { status: 400 })
     }
     const existingEmail = await prisma.user.findUnique({ where: { email } })
     if (existingEmail) {

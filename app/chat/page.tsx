@@ -259,6 +259,30 @@ export default function ChatPage() {
     }
   }
 
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    const imageItems: File[] = []
+    for (const item of Array.from(items)) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) {
+          const ext = file.type.split('/')[1] || 'png'
+          const namedFile = new File(
+            [file],
+            file.name && file.name !== 'image.png' ? file.name : `screenshot-${Date.now()}.${ext}`,
+            { type: file.type }
+          )
+          imageItems.push(namedFile)
+        }
+      }
+    }
+    if (imageItems.length > 0) {
+      e.preventDefault()
+      await handleFileUpload(imageItems)
+    }
+  }
+
   const createChannel = async () => {
     if (!newChannelName.trim()) return
     try {
@@ -334,26 +358,20 @@ export default function ChatPage() {
 
   return (
     <div className="h-screen flex bg-[#1a1a2e] text-white overflow-hidden">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
-
-      {/* Left Sidebar - Channels */}
       <aside
         className={`fixed md:static inset-y-0 left-0 z-30 w-60 bg-[#2b2d31] flex flex-col h-screen transition-transform duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
-        {/* App header */}
         <div className="h-12 px-4 flex items-center justify-between border-b border-black/30 shadow-sm">
           <span className="font-bold text-white">💬 Skupinový Chat</span>
           <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Channels list */}
         <div className="flex-1 overflow-y-auto py-2">
           <div className="px-2 mb-1">
             <div className="flex items-center justify-between px-2 py-1">
@@ -409,11 +427,9 @@ export default function ChatPage() {
             </div>
           ))}
         </div>
-
-        {/* User info at bottom */}
         <div className="h-14 bg-[#232428] px-2 flex items-center gap-2">
           {session?.user && (
-            <>
+            <>  
               <Avatar username={session.user.username || session.user.email || 'U'} color="#6366f1" size="sm" />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-white truncate">{session.user.username}</div>
@@ -430,22 +446,19 @@ export default function ChatPage() {
           )}
         </div>
       </aside>
-
-      {/* Main chat area */}
       <main
         className="flex-1 flex flex-col min-w-0"
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
       >
-        {/* Channel header */}
         <div className="h-12 border-b border-black/30 px-4 flex items-center gap-3 bg-[#313338] shadow-sm flex-shrink-0">
           <button onClick={() => setSidebarOpen(true)} className="md:hidden text-gray-400 hover:text-white">
             <Menu className="w-5 h-5" />
           </button>
           {activeChannel ? (
-            <>
+            <>  
               <Hash className="w-5 h-5 text-gray-400" />
-              <span className="font-semibold">{activeChannel.name}</span>
+              <span className="font-semibold">{activeChannel.name}</span>  
               {activeChannel.description && (
                 <span className="text-gray-400 text-sm border-l border-gray-600 pl-3 hidden sm:block">
                   {activeChannel.description}
@@ -465,8 +478,6 @@ export default function ChatPage() {
             </button>
           </div>
         </div>
-
-        {/* Messages area */}
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {activeChannel && messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
@@ -528,8 +539,6 @@ export default function ChatPage() {
           </div>
           <div ref={messagesEndRef} />
         </div>
-
-        {/* Input area */}
         <div className="px-4 pb-4 pt-2 flex-shrink-0">
           {pendingFiles.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2 p-2 bg-white/5 rounded-lg">
@@ -572,7 +581,8 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={activeChannel ? `Napsat zprávu do #${activeChannel.name}...` : 'Vyberte kanál...'}
+              onPaste={handlePaste}
+              placeholder={activeChannel ? `Napsat zprávu do #${activeChannel.name}... (Ctrl+V pro screenshot)` : 'Vyberte kanál...'}
               disabled={!activeChannelId || sending}
               rows={1}
               className="flex-1 bg-transparent text-white placeholder-gray-500 text-sm resize-none focus:outline-none max-h-36 overflow-y-auto"
@@ -586,10 +596,11 @@ export default function ChatPage() {
               <Send className="w-5 h-5" />
             </button>
           </div>
+          {uploading && (
+            <p className="text-xs text-gray-500 mt-1 pl-1">Nahrávám soubor...</p>
+          )}
         </div>
       </main>
-
-      {/* Right sidebar - Members */}
       <aside
         className={`${membersPanelOpen ? 'flex' : 'hidden'} lg:flex flex-col w-60 bg-[#2b2d31] border-l border-black/30 h-screen flex-shrink-0`}
       >
@@ -598,7 +609,7 @@ export default function ChatPage() {
         </div>
         <div className="flex-1 overflow-y-auto py-3 px-2">
           {onlineUsers.length > 0 && (
-            <>
+            <>  
               <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-2 mb-1">
                 Online — {onlineUsers.length}
               </div>

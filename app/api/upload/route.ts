@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ext = path.extname(file.name)
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+    const uniqueName = `${crypto.randomUUID()}${ext}`
     const filePath = path.join(uploadDir, uniqueName)
 
     const buffer = Buffer.from(await file.arrayBuffer())

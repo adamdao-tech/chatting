@@ -48,6 +48,15 @@ export async function POST(
     return NextResponse.json({ error: 'Zpráva nemůže být prázdná' }, { status: 400 })
   }
 
+  if (fileIds?.length) {
+    const files = await prisma.file.findMany({
+      where: { id: { in: fileIds }, messageId: null },
+    })
+    if (files.length !== fileIds.length) {
+      return NextResponse.json({ error: 'Neplatné soubory' }, { status: 400 })
+    }
+  }
+
   const channel = await prisma.channel.findUnique({ where: { id: channelId } })
   if (!channel) {
     return NextResponse.json({ error: 'Kanál nenalezen' }, { status: 404 })

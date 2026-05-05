@@ -4,7 +4,11 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+if (!process.env.OPENAI_API_KEY) {
+  console.warn('OPENAI_API_KEY is not set. AI responses will fail.')
+}
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY ?? '' })
 
 const SYSTEM_PROMPT = `Jsi užitečný AI asistent uvnitř webové chatovací aplikace. Odpovídej jasně, prakticky a přehledně. Pokud uživatel pošle odkaz, screenshot nebo soubor, pokus se s ním pracovat podle dostupných možností backendu. Pokud k obsahu nemáš přístup, řekni to narovinu a požádej uživatele, aby vložil text nebo popsal obsah.`
 

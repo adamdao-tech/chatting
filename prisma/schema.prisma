@@ -49,5 +49,5 @@ model File {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  message   Message? @relation(fields: [messageId], references: [id])
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
 }

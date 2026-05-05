@@ -2,15 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/constants'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
-
-const ALLOWED_TYPES = [
-  'image/png', 'image/jpeg', 'image/jpg', 'image/webp',
-  'application/pdf', 'text/plain',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-]
-const MAX_SIZE = 10 * 1024 * 1024
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -28,10 +22,10 @@ export async function POST(req: NextRequest) {
   if (!chatId) {
     return NextResponse.json({ error: 'chatId required' }, { status: 400 })
   }
-  if (!ALLOWED_TYPES.includes(file.type)) {
+  if (!(ALLOWED_FILE_TYPES as readonly string[]).includes(file.type)) {
     return NextResponse.json({ error: 'File type not allowed' }, { status: 400 })
   }
-  if (file.size > MAX_SIZE) {
+  if (file.size > MAX_FILE_SIZE) {
     return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 })
   }
 

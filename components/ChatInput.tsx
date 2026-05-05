@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { Send, Paperclip, X, FileText } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE, MAX_FILES_PER_MESSAGE } from '@/lib/constants'
 
 interface UploadedFile {
   id: string
@@ -39,12 +40,11 @@ export function ChatInput({ chatId, onSend, disabled }: ChatInputProps) {
   }
 
   const uploadFile = useCallback(async (file: File) => {
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > MAX_FILE_SIZE) {
       toast.error('Soubor je příliš velký (max 10 MB)')
       return
     }
-    const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'application/pdf', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-    if (!allowed.includes(file.type)) {
+    if (!(ALLOWED_FILE_TYPES as readonly string[]).includes(file.type)) {
       toast.error('Nepodporovaný typ souboru')
       return
     }
@@ -61,8 +61,8 @@ export function ChatInput({ chatId, onSend, disabled }: ChatInputProps) {
       }
       const uploaded = await res.json()
       setFiles((prev) => {
-        if (prev.length >= 3) {
-          toast.error('Maximálně 3 soubory na zprávu')
+        if (prev.length >= MAX_FILES_PER_MESSAGE) {
+          toast.error(`Maximálně ${MAX_FILES_PER_MESSAGE} soubory na zprávu`)
           return prev
         }
         return [...prev, uploaded]

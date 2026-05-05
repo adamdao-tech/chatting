@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/constants'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
+
+const ALLOWED_TYPES = [
+  'image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif',
+  'application/pdf', 'text/plain',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/zip',
+]
+const MAX_SIZE = 10 * 1024 * 1024
+const MAX_FILES = 3
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -13,49 +21,46 @@ export async function POST(req: NextRequest) {
   }
 
   const formData = await req.formData()
-  const file = formData.get('file') as File | null
-  const chatId = formData.get('chatId') as string | null
+  const files = formData.getAll('files') as File[]
 
-  if (!file) {
-    return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+  if (!files || files.length === 0) {
+    return NextResponse.json({ error: 'Žádný soubor nebyl nahrán' }, { status: 400 })
   }
-  if (!chatId) {
-    return NextResponse.json({ error: 'chatId required' }, { status: 400 })
-  }
-  if (!(ALLOWED_FILE_TYPES as readonly string[]).includes(file.type)) {
-    return NextResponse.json({ error: 'File type not allowed' }, { status: 400 })
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 })
+  if (files.length > MAX_FILES) {
+    return NextResponse.json({ error: `Maximálně ${MAX_FILES} soubory najednou` }, { status: 400 })
   }
 
-  const chat = await prisma.chat.findUnique({ where: { id: chatId } })
-  if (!chat || chat.userId !== session.user.id) {
-    return NextResponse.json({ error: 'Chat not found' }, { status: 404 })
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads')
+  await mkdir(uploadDir, { recursive: true })
+
+  const uploadedFiles = []
+
+  for (const file of files) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json({ error: `Nepodporovaný typ souboru: ${file.type}` }, { status: 400 })
+    }
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json({ error: `Soubor ${file.name} je příliš velký (max 10MB)` }, { status: 400 })
+    }
+
+    const ext = path.extname(file.name)
+    const uniqueName = `${crypto.randomUUID()}${ext}`
+    const filePath = path.join(uploadDir, uniqueName)
+
+    const buffer = Buffer.from(await file.arrayBuffer())
+    await writeFile(filePath, buffer)
+
+    const fileRecord = await prisma.file.create({
+      data: {
+        fileName: file.name,
+        fileUrl: `/uploads/${uniqueName}`,
+        fileType: file.type,
+        fileSize: file.size,
+        userId: session.user.id,
+      },
+    })
+    uploadedFiles.push(fileRecord)
   }
 
-  const bytes = await file.arrayBuffer()
-  const buffer = Buffer.from(bytes)
-
-  const uploadsDir = path.join(process.cwd(), 'public', 'uploads', session.user.id)
-  await mkdir(uploadsDir, { recursive: true })
-
-  const uniqueName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-  const filePath = path.join(uploadsDir, uniqueName)
-  await writeFile(filePath, buffer)
-
-  const fileUrl = `/uploads/${session.user.id}/${uniqueName}`
-
-  const dbFile = await prisma.file.create({
-    data: {
-      userId: session.user.id,
-      chatId,
-      fileName: file.name,
-      fileUrl,
-      fileType: file.type,
-      fileSize: file.size,
-    },
-  })
-
-  return NextResponse.json(dbFile, { status: 201 })
+  return NextResponse.json({ files: uploadedFiles }, { status: 201 })
 }

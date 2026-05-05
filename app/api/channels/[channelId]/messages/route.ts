@@ -50,7 +50,8 @@ export async function POST(
 
   if (fileIds?.length) {
     const files = await prisma.file.findMany({
-      where: { id: { in: fileIds }, messageId: null },
+      where: { id: { in: fileIds }, messageId: null, userId: session.user.id },
+      select: { id: true, fileUrl: true },
     })
     if (files.length !== fileIds.length) {
       return NextResponse.json({ error: 'Neplatné soubory' }, { status: 400 })

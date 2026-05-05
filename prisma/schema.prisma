@@ -17,6 +17,7 @@ model User {
   lastSeen     DateTime?
   createdAt    DateTime  @default(now())
   messages     Message[]
+  files        File[]
 }
 
 model Channel {
@@ -41,10 +42,12 @@ model Message {
 model File {
   id        String   @id @default(cuid())
   messageId String?
+  userId    String
   fileName  String
   fileUrl   String
   fileType  String
   fileSize  Int
   createdAt DateTime @default(now())
   message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

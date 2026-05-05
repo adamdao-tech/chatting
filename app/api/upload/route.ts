@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
         fileUrl: `/uploads/${uniqueName}`,
         fileType: file.type,
         fileSize: file.size,
+        userId: session.user.id,
       },
     })
     uploadedFiles.push(fileRecord)

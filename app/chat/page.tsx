@@ -39,6 +39,11 @@ interface ChatUser {
   online: boolean
 }
 
+const HEARTBEAT_INTERVAL_MS = 30_000
+const USERS_POLL_INTERVAL_MS = 10_000
+const MESSAGES_POLL_INTERVAL_MS = 2_500
+const MESSAGE_GROUP_THRESHOLD_MS = 5 * 60 * 1000
+
 function Avatar({ username, color, size = 'md' }: { username: string; color: string; size?: 'sm' | 'md' | 'lg' }) {
   const sizes = { sm: 'w-7 h-7 text-xs', md: 'w-9 h-9 text-sm', lg: 'w-10 h-10 text-sm' }
   return (
@@ -165,8 +170,8 @@ export default function ChatPage() {
     fetchChannels()
     fetchUsers()
     sendHeartbeat()
-    heartbeatRef.current = setInterval(sendHeartbeat, 30000)
-    const usersInterval = setInterval(fetchUsers, 10000)
+    heartbeatRef.current = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS)
+    const usersInterval = setInterval(fetchUsers, USERS_POLL_INTERVAL_MS)
     return () => {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current)
       clearInterval(usersInterval)
@@ -177,7 +182,7 @@ export default function ChatPage() {
     if (!activeChannelId) return
     fetchMessages()
     if (pollingRef.current) clearInterval(pollingRef.current)
-    pollingRef.current = setInterval(fetchMessages, 2500)
+    pollingRef.current = setInterval(fetchMessages, MESSAGES_POLL_INTERVAL_MS)
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current)
     }
@@ -310,7 +315,7 @@ export default function ChatPage() {
     const isGrouped =
       !!prev &&
       prev.user.id === msg.user.id &&
-      new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime() < 5 * 60 * 1000
+      new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime() < MESSAGE_GROUP_THRESHOLD_MS
     acc.push({ ...msg, isGrouped })
     return acc
   }, [])

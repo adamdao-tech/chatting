@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     const fileRecord = await prisma.file.create({
       data: {
         fileName: file.name,
-        fileUrl: `/uploads/${uniqueName}`,
+        fileUrl: `/api/uploads/${uniqueName}`,
         fileType: file.type,
         fileSize: file.size,
         userId: session.user.id,
